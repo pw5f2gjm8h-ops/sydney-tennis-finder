@@ -1,106 +1,33 @@
 // Enhanced Tennis Court Scraper - Region Filtering + Calendar Navigation + New Venues
 // Features: Region-based filtering, calendar date selection, Trumper Park, Centennial Parklands
-// CSV Integration: Automatically loads all 192 Sydney postcodes from sydneypostcodes.csv
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
-const csv = require('csv-parser');
 
 puppeteer.use(StealthPlugin());
 
-// Configuration
-const MAX_CONCURRENCY = 8; // Increased from 6 to 8 for faster scraping
-const PAGE_TIMEOUT = 60000; // Reduced from 90000 to 60000 (1 minute)
-const NAVIGATION_TIMEOUT = 60000; // Reduced from 90000 to 60000  
-const POST_NAV_WAIT = 3000; // Reduced from 4000 to 3000
+// Configuration - OPTIMIZED FOR RAILWAY PRO (8GB RAM)
+const MAX_CONCURRENCY = 8; // Perfect for Railway Pro!
+const PAGE_TIMEOUT = 60000; // 60 seconds
+const NAVIGATION_TIMEOUT = 60000;
+const POST_NAV_WAIT = 2000;
 
-// POSTCODE TO REGION MAPPING
-// This will be populated from sydneypostcodes.csv automatically
-// Supports ALL 192 Sydney postcodes!
-const POSTCODE_REGIONS = {};
-
-/**
- * Load postcode-to-region mappings from CSV file
- * This replaces the hardcoded POSTCODE_REGIONS object
- * Now supports all 192 Sydney postcodes automatically!
- */
-async function loadPostcodeRegions() {
-  return new Promise((resolve, reject) => {
-    const results = {};
-    let rowCount = 0;
-    
-    // Check if CSV file exists
-    if (!fs.existsSync('sydneypostcodes.csv')) {
-      console.warn('⚠️  Warning: sydneypostcodes.csv not found!');
-      console.warn('   Using fallback postcode mappings...');
-      // Fallback to basic mappings if CSV not found
-      Object.assign(POSTCODE_REGIONS, {
-        '2034': 'Eastern Suburbs',
-        '2032': 'Eastern Suburbs',
-        '2031': 'Eastern Suburbs',
-        '2021': 'Eastern Suburbs',
-        '2022': 'Eastern Suburbs',
-        '2010': 'Inner City',
-        '2037': 'Inner West',
-        '2015': 'Inner South',
-        '2018': 'Inner South',
-        '2026': 'Eastern Suburbs',
-        '2030': 'Eastern Suburbs',
-        '2025': 'Eastern Suburbs',
-        '2033': 'Eastern Suburbs'
-      });
-      console.log(`   Loaded ${Object.keys(POSTCODE_REGIONS).length} fallback postcodes\n`);
-      resolve();
-      return;
-    }
-    
-    fs.createReadStream('sydneypostcodes.csv')
-      .pipe(csv())
-      .on('data', (row) => {
-        // CSV has columns: Postcode, Primary Suburb(s), Region
-        const postcode = row.Postcode || row.postcode;
-        const region = row.Region || row.region;
-        
-        if (postcode && region) {
-          results[postcode] = region;
-          rowCount++;
-        }
-      })
-      .on('end', () => {
-        // Copy results to POSTCODE_REGIONS
-        Object.assign(POSTCODE_REGIONS, results);
-        console.log(`✅ Loaded ${Object.keys(POSTCODE_REGIONS).length} postcode mappings from sydneypostcodes.csv`);
-        
-        // Show unique regions
-        const uniqueRegions = [...new Set(Object.values(POSTCODE_REGIONS))].sort();
-        console.log(`📍 Regions available: ${uniqueRegions.join(', ')}`);
-        console.log(`🎾 Ready to scrape clubs across all Sydney!\n`);
-        resolve();
-      })
-      .on('error', (error) => {
-        console.error('❌ Error reading CSV:', error.message);
-        console.warn('   Using fallback postcode mappings...');
-        // Fallback to basic mappings on error
-        Object.assign(POSTCODE_REGIONS, {
-          '2034': 'Eastern Suburbs',
-          '2032': 'Eastern Suburbs',
-          '2031': 'Eastern Suburbs',
-          '2021': 'Eastern Suburbs',
-          '2022': 'Eastern Suburbs',
-          '2010': 'Inner City',
-          '2037': 'Inner West',
-          '2015': 'Inner South',
-          '2018': 'Inner South',
-          '2026': 'Eastern Suburbs',
-          '2030': 'Eastern Suburbs',
-          '2025': 'Eastern Suburbs',
-          '2033': 'Eastern Suburbs'
-        });
-        console.log(`   Loaded ${Object.keys(POSTCODE_REGIONS).length} fallback postcodes\n`);
-        resolve();
-      });
-  });
-}
+// POSTCODE TO REGION MAPPING (from sydneypostcodes.csv)
+const POSTCODE_REGIONS = {
+  '2034': 'Eastern Suburbs',
+  '2032': 'Eastern Suburbs',
+  '2031': 'Eastern Suburbs',
+  '2021': 'Eastern Suburbs',
+  '2022': 'Eastern Suburbs',
+  '2010': 'Inner City',
+  '2037': 'Inner West',
+  '2015': 'Inner South',
+  '2018': 'Inner South',
+  '2026': 'Eastern Suburbs',
+  '2030': 'Eastern Suburbs',
+  '2025': 'Eastern Suburbs',
+  '2033': 'Eastern Suburbs',
+};
 
 const CLUBS = {
   coogeeBeach: {
@@ -277,15 +204,44 @@ async function createStealthBrowser() {
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-blink-features=AutomationControlled',
-      '--disable-dev-shm-usage',
+      '--disable-dev-shm-usage', // CRITICAL for Railway!
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
       '--disable-gpu',
-      '--window-size=1920,1080',
+      '--window-size=1280,720', // Smaller window = less memory
       '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process'
-    ]
+      '--disable-features=IsolateOrigins,site-per-process',
+      // CRITICAL Railway flags to prevent "Resource unavailable"
+      '--single-process', // Run everything in one process
+      '--disable-software-rasterizer',
+      '--disable-gpu-sandbox',
+      '--disable-images', // Don't load images
+      '--disable-css', // Don't load CSS (we don't need it for scraping)
+      '--disable-javascript-harmony-shipping',
+      '--disable-extensions',
+      '--disable-background-networking',
+      '--disable-default-apps',
+      '--disable-sync',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-default-browser-check',
+      '--no-pings',
+      '--disable-breakpad', // No crash reporting
+      '--disable-component-update',
+      '--disable-domain-reliability',
+      '--disable-features=AudioServiceOutOfProcess',
+      '--disable-print-preview',
+      '--disable-speech-api',
+      '--disable-file-system',
+      '--disable-permissions-api',
+      '--disable-presentation-api',
+      '--disable-remote-fonts',
+      '--disable-shared-workers',
+      '--js-flags="--max-old-space-size=1024"' // 1GB for JS (Railway Pro has plenty of RAM)
+    ],
+    // Force Chrome to use less memory
+    protocolTimeout: 120000
   });
   
   return browser;
@@ -1806,12 +1762,7 @@ if (require.main === module) {
     region = process.argv[3];
   }
   
-  console.log('🎾 Sydney Tennis Court Finder - Enhanced Scraper');
-  console.log('📦 Loading postcode mappings from CSV...\n');
-  
-  // Load postcode regions from CSV first, then scrape
-  loadPostcodeRegions()
-    .then(() => scrapeAllClubsBatched(searchDate, region))
+  scrapeAllClubsBatched(searchDate, region)
     .then(() => {
       console.log('✨ Complete!\n');
       process.exit(0);
@@ -1822,4 +1773,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { scrapeClub, scrapeAllClubsBatched, CLUBS, filterClubsByRegion, POSTCODE_REGIONS, loadPostcodeRegions };
+module.exports = { scrapeClub, scrapeAllClubsBatched, CLUBS, filterClubsByRegion, POSTCODE_REGIONS };
