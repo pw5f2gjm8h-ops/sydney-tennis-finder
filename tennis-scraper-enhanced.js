@@ -53,9 +53,9 @@ const CLUBS = {
   eastsideTennis: {
     name: 'Eastside Tennis Centre',
     url: 'https://www.tennisvenues.com.au/booking/eastside-tennis-centre?mobileViewDisabled=true',
-    address: 'Anzac Parade, Kingsford NSW 2032',
+    address: '1 Court Ave, Kingsford NSW 2032',
     postcode: '2032',
-    phone: '(02) 9662 6940',
+    phone: '0493 496 426',
     type: 'tennisvenues',
     courts: 8,
     surface: 'Synthetic/Hard/Clay'
@@ -63,19 +63,19 @@ const CLUBS = {
   snapePark: {
     name: 'Snape Park Tennis Club',
     url: 'https://www.tennisvenues.com.au/booking/snape-park-tc',
-    address: 'O\'Donnell St, North Bondi NSW 2026',
-    postcode: '2026',
-    phone: '(02) 9130 3513',
+    address: '15 Snape Street, Maroubra NSW 2035',
+    postcode: '2035',
+    phone: '(02) 9344 3424',
     type: 'tennisvenues',
-    courts: 4,
-    surface: 'Synthetic Grass'
+    courts: 6,
+    surface: 'Synthetic Grass/Hard'
   },
   cooperPark: {
     name: 'Cooper Park Tennis Club',
     url: 'https://www.tennisvenues.com.au/booking/cooper-park-tc',
-    address: 'Suttie Rd, Bellevue Hill NSW 2030',
-    postcode: '2030',
-    phone: '(02) 9389 9259',
+    address: '1 Bunna Place (off Suttie Road), Woollahra NSW 2025',
+    postcode: '2025',
+    phone: '(02) 9389 3100',
     type: 'tennisvenues',
     courts: 8,
     surface: 'Synthetic Grass'
@@ -165,9 +165,9 @@ const CLUBS = {
   sydneyBoysHigh: {
     name: "Sydney Boys High School",
     url: 'https://www.tennisvenues.com.au/booking/sydney-boys-high-school',
-    address: 'Moore Park Road, Moore Park NSW 2021',
+    address: '556 Cleveland St, Moore Park NSW 2021',
     postcode: '2021',
-    phone: '(02) 9662 9300',
+    phone: '0416 007 810',
     type: 'tennisvenues',
     courts: 6,
     surface: 'Hard Court'
