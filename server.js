@@ -170,62 +170,103 @@ app.get('/', (req, res) => {
 // API endpoint to get available regions
 app.get('/api/regions', (req, res) => {
   try {
-    // Import the scraper module to get clubs
-    const scraperModule = require('./tennis-scraper-enhanced.js');
+    // Read the scraper file to extract clubs and regions
+    const scraperPath = path.join(__dirname, 'tennis-scraper-enhanced.js');
+    const scraperContent = fs.readFileSync(scraperPath, 'utf8');
     
-    // Get all clubs
-    const clubs = scraperModule.CLUBS;
+    // Extract POSTCODE_REGIONS mapping
+    const postcodeMatch = scraperContent.match(/const POSTCODE_REGIONS = (?:loadRegionsFromCSV\(\)|(\{[^}]+\}))/s);
     
-    // Load postcode regions mapping (synchronously for this endpoint)
-    // We'll use the postcodes from clubs to determine regions
-    const uniqueRegions = new Set();
+    if (!postcodeMatch) {
+      console.warn('⚠️ Could not find POSTCODE_REGIONS in scraper');
+      return res.json({ regions: ['All Regions', 'Eastern Suburbs', 'Inner City', 'Inner South', 'Inner West'] });
+    }
     
-    // For each club, get its region from postcode
-    for (const clubKey in clubs) {
-      const club = clubs[clubKey];
-      const postcode = club.postcode;
-      
-      // Get region from POSTCODE_REGIONS
-      // First try to use the loaded regions, fallback to hardcoded
-      let region = scraperModule.POSTCODE_REGIONS[postcode];
-      
-      // If not in loaded regions, try basic mapping
-      if (!region) {
-        const basicRegions = {
-          '2034': 'Eastern Suburbs',
-          '2032': 'Eastern Suburbs',
-          '2031': 'Eastern Suburbs',
-          '2021': 'Eastern Suburbs',
-          '2022': 'Eastern Suburbs',
-          '2010': 'Inner City',
-          '2037': 'Inner West',
-          '2015': 'Inner South',
-          '2018': 'Inner South',
-          '2026': 'Eastern Suburbs',
-          '2030': 'Eastern Suburbs',
-          '2025': 'Eastern Suburbs',
-          '2033': 'Eastern Suburbs'
-        };
-        region = basicRegions[postcode];
+    // Extract all postcode->region mappings
+    const postcodeRegions = {};
+    
+    // Check if using CSV loader or hardcoded
+    if (scraperContent.includes('loadRegionsFromCSV()')) {
+      // Parse CSV file directly
+      try {
+        const csvPath = path.join(__dirname, 'sydneypostcodes.csv');
+        const csvContent = fs.readFileSync(csvPath, 'utf8');
+        const lines = csvContent.split('\n');
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          const parts = line.split(',');
+          if (parts.length >= 3) {
+            const postcode = parts[0].trim();
+            const region = parts[2].trim();
+            if (postcode && region && region !== '(PO Boxes)') {
+              postcodeRegions[postcode] = region;
+            }
+          }
+        }
+        console.log(`📂 Loaded ${Object.keys(postcodeRegions).length} postcodes from CSV`);
+      } catch (csvError) {
+        console.warn('⚠️ Could not read CSV, parsing from scraper code');
+        // Fall back to parsing hardcoded values
+        const regionsText = postcodeMatch[1] || '';
+        const regionMatches = regionsText.matchAll(/'([^']+)'\s*:\s*'([^']+)'/g);
+        for (const match of regionMatches) {
+          postcodeRegions[match[1]] = match[2];
+        }
       }
-      
-      if (region) {
-        uniqueRegions.add(region);
+    } else {
+      // Parse hardcoded POSTCODE_REGIONS object
+      const regionsText = postcodeMatch[1] || '';
+      const regionMatches = regionsText.matchAll(/'([^']+)'\s*:\s*'([^']+)'/g);
+      for (const match of regionMatches) {
+        postcodeRegions[match[1]] = match[2];
       }
     }
     
-    // Convert to array and sort
-    const regions = Array.from(uniqueRegions).sort();
+    // Extract all CLUBS and their postcodes
+    const clubsMatch = scraperContent.match(/const CLUBS = \{([\s\S]*?)\n\};/);
     
-    console.log(`📍 Found ${regions.length} regions with clubs: ${regions.join(', ')}`);
+    if (!clubsMatch) {
+      console.warn('⚠️ Could not find CLUBS in scraper');
+      return res.json({ regions: ['All Regions', 'Eastern Suburbs', 'Inner City', 'Inner South', 'Inner West'] });
+    }
     
-    res.json({ regions });
+    // Find all postcodes used by clubs
+    const clubPostcodes = new Set();
+    const postcodeMatches = clubsMatch[1].matchAll(/postcode:\s*'(\d+)'/g);
+    
+    for (const match of postcodeMatches) {
+      clubPostcodes.add(match[1]);
+    }
+    
+    console.log(`🏢 Found ${clubPostcodes.size} unique postcodes used by clubs`);
+    
+    // Map postcodes to regions - ONLY include regions that have clubs
+    const activeRegions = new Set();
+    
+    for (const postcode of clubPostcodes) {
+      const region = postcodeRegions[postcode];
+      if (region) {
+        activeRegions.add(region);
+      } else {
+        console.warn(`⚠️ No region mapping for postcode ${postcode}`);
+      }
+    }
+    
+    // Sort regions alphabetically
+    const regions = Array.from(activeRegions).sort();
+    
+    console.log(`✅ Active regions with clubs (${regions.length}): ${regions.join(', ')}`);
+    
+    // Return with "All Regions" first
+    res.json({ regions: ['All Regions', ...regions] });
+    
   } catch (error) {
-    console.error('Error loading regions:', error);
-    // Fallback to basic regions if there's an error
-    res.json({ 
-      regions: ['Eastern Suburbs', 'Inner City', 'Inner West', 'Inner South'] 
-    });
+    console.error('❌ Error loading regions:', error);
+    // Fallback to known good regions
+    res.json({ regions: ['All Regions', 'Eastern Suburbs', 'Inner City', 'Inner South', 'Inner West'] });
   }
 });
 
