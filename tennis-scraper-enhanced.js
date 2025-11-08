@@ -3,6 +3,7 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
+const path = require('path');
 
 puppeteer.use(StealthPlugin());
 
@@ -12,22 +13,67 @@ const PAGE_TIMEOUT = 60000; // 60 seconds
 const NAVIGATION_TIMEOUT = 60000;
 const POST_NAV_WAIT = 2000;
 
-// POSTCODE TO REGION MAPPING (from sydneypostcodes.csv)
-const POSTCODE_REGIONS = {
-  '2034': 'Eastern Suburbs',
-  '2032': 'Eastern Suburbs',
-  '2031': 'Eastern Suburbs',
-  '2021': 'Eastern Suburbs',
-  '2022': 'Eastern Suburbs',
-  '2010': 'Inner City',
-  '2037': 'Inner West',
-  '2015': 'Inner South',
-  '2018': 'Inner South',
-  '2026': 'Eastern Suburbs',
-  '2030': 'Eastern Suburbs',
-  '2025': 'Eastern Suburbs',
-  '2033': 'Eastern Suburbs',
-};
+// FUNCTION TO LOAD REGIONS FROM CSV
+function loadRegionsFromCSV() {
+  try {
+    // Try to read the CSV file
+    const csvPath = path.join(__dirname, 'sydneypostcodes.csv');
+    console.log('📂 Loading regions from CSV:', csvPath);
+    
+    const csvContent = fs.readFileSync(csvPath, 'utf8');
+    const regions = {};
+    const lines = csvContent.split('\n');
+    
+    // Skip header row (line 0)
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty lines
+      
+      // Parse CSV: Postcode,Primary Suburb(s),Region
+      const parts = line.split(',');
+      if (parts.length >= 3) {
+        const postcode = parts[0].trim();
+        const region = parts[2].trim();
+        
+        if (postcode && region && region !== '(PO Boxes)') {
+          regions[postcode] = region;
+        }
+      }
+    }
+    
+    const uniqueRegions = [...new Set(Object.values(regions))];
+    console.log(`✅ Loaded ${Object.keys(regions).length} postcodes mapping to ${uniqueRegions.length} regions`);
+    console.log(`📍 Regions: ${uniqueRegions.join(', ')}`);
+    
+    return regions;
+    
+  } catch (error) {
+    console.warn('⚠️ Could not load CSV file, using fallback defaults');
+    console.warn('   Error:', error.message);
+    console.warn('   Make sure sydneypostcodes.csv is in the same directory as this script');
+    
+    // FALLBACK: Use hardcoded defaults if CSV fails
+    return {
+      '2034': 'Eastern Suburbs',
+      '2032': 'Eastern Suburbs',
+      '2031': 'Eastern Suburbs',
+      '2021': 'Eastern Suburbs',
+      '2022': 'Eastern Suburbs',
+      '2010': 'Inner City',
+      '2037': 'Inner West',
+      '2015': 'Inner South',
+      '2018': 'Inner South',
+      '2026': 'Eastern Suburbs',
+      '2030': 'Eastern Suburbs',
+      '2025': 'Eastern Suburbs',
+      '2033': 'Eastern Suburbs',
+      '2035': 'Eastern Suburbs',
+    };
+  }
+}
+
+// POSTCODE TO REGION MAPPING - Loaded from CSV at startup
+const POSTCODE_REGIONS = loadRegionsFromCSV();
 
 const CLUBS = {
   coogeeBeach: {
