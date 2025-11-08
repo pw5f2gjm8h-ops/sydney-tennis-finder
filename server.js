@@ -197,10 +197,30 @@ app.get('/api/regions', (req, res) => {
           const line = lines[i].trim();
           if (!line) continue;
           
-          const parts = line.split(',');
+          // Parse CSV properly handling quoted fields with commas
+          // Example: 2000,"Sydney, Haymarket, The Rocks",Sydney City
+          const parts = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              parts.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          parts.push(current.trim()); // Add last field
+          
           if (parts.length >= 3) {
-            const postcode = parts[0].trim();
-            const region = parts[2].trim();
+            const postcode = parts[0];
+            const region = parts[2]; // Column 3 is the region
+            
             if (postcode && region && region !== '(PO Boxes)') {
               postcodeRegions[postcode] = region;
             }
@@ -209,6 +229,7 @@ app.get('/api/regions', (req, res) => {
         console.log(`📂 Loaded ${Object.keys(postcodeRegions).length} postcodes from CSV`);
       } catch (csvError) {
         console.warn('⚠️ Could not read CSV, parsing from scraper code');
+        console.warn('   Error:', csvError.message);
         // Fall back to parsing hardcoded values
         const regionsText = postcodeMatch[1] || '';
         const regionMatches = regionsText.matchAll(/'([^']+)'\s*:\s*'([^']+)'/g);
