@@ -220,6 +220,24 @@
       return { byCourt, courts };
     }
 
+    function filterSlotsByTimePeriod(slots, period) {
+      if (period === 'all') return slots;
+      
+      const periods = {
+        morning: { start: 6, end: 12 },
+        afternoon: { start: 12, end: 17 },
+        evening: { start: 17, end: 23 }
+      };
+      
+      const range = periods[period];
+      if (!range) return slots;
+      
+      return slots.filter(slot => {
+        const [hour] = slot.time.split(':').map(Number);
+        return hour >= range.start && hour < range.end;
+      });
+    }
+
     function App() {
       const [selectedDate, setSelectedDate] = useState(() => {
         const tomorrow = new Date();
@@ -227,6 +245,7 @@
         return tomorrow.toISOString().split('T')[0];
       });
       const [selectedRegion, setSelectedRegion] = useState('All Regions');
+      const [selectedTimePeriod, setSelectedTimePeriod] = useState('all');
       const [availableRegions, setAvailableRegions] = useState(['All Regions']);
       const [loading, setLoading] = useState(false);
       const [results, setResults] = useState(null);
@@ -283,31 +302,45 @@
               React.createElement('span', { className: 'text-4xl' }, '🎾'),
               React.createElement('h1', { className: 'text-3xl font-bold' }, 'Sydney Tennis Court Finder')
             ),
-            React.createElement('div', { className: 'flex flex-col sm:flex-row gap-3 max-w-3xl mx-auto' },
-              // Date Input
-              React.createElement('div', { className: 'flex-1' },
-                React.createElement('input', {
-                  type: 'date',
-                  value: selectedDate,
-                  onChange: (e) => setSelectedDate(e.target.value),
-                  className: 'w-full px-4 py-2 rounded-lg bg-white/20 backdrop-blur text-white placeholder-white/70 border-2 border-white/30 focus:border-white/50 focus:outline-none text-sm'
-                })
-              ),
-              // Region Selector
-              React.createElement('select', {
-                value: selectedRegion,
-                onChange: (e) => setSelectedRegion(e.target.value),
-                className: 'flex-1 px-4 py-2 rounded-lg bg-white/20 backdrop-blur text-white border-2 border-white/30 focus:border-white/50 focus:outline-none text-sm'
-              },
-                availableRegions.map(region => 
-                  React.createElement('option', { 
-                    key: region, 
-                    value: region,
-                    className: 'bg-gray-800'
-                  }, region)
+            React.createElement('div', { className: 'flex flex-col gap-3 max-w-3xl mx-auto' },
+              // First row: Date, Region, Time Period (3 columns)
+              React.createElement('div', { className: 'grid grid-cols-1 sm:grid-cols-3 gap-3' },
+                // Date Input
+                React.createElement('div', null,
+                  React.createElement('input', {
+                    type: 'date',
+                    value: selectedDate,
+                    onChange: (e) => setSelectedDate(e.target.value),
+                    className: 'w-full px-4 py-2 rounded-lg bg-white/20 backdrop-blur text-white placeholder-white/70 border-2 border-white/30 focus:border-white/50 focus:outline-none text-sm'
+                  })
+                ),
+                // Region Selector
+                React.createElement('select', {
+                  value: selectedRegion,
+                  onChange: (e) => setSelectedRegion(e.target.value),
+                  className: 'px-4 py-2 rounded-lg bg-white/20 backdrop-blur text-white border-2 border-white/30 focus:border-white/50 focus:outline-none text-sm'
+                },
+                  availableRegions.map(region => 
+                    React.createElement('option', { 
+                      key: region, 
+                      value: region,
+                      className: 'bg-gray-800'
+                    }, region)
+                  )
+                ),
+                // Time Period Selector
+                React.createElement('select', {
+                  value: selectedTimePeriod,
+                  onChange: (e) => setSelectedTimePeriod(e.target.value),
+                  className: 'px-4 py-2 rounded-lg bg-white/20 backdrop-blur text-white border-2 border-white/30 focus:border-white/50 focus:outline-none text-sm'
+                },
+                  React.createElement('option', { value: 'all', className: 'bg-gray-800' }, 'All Day (6am-11pm)'),
+                  React.createElement('option', { value: 'morning', className: 'bg-gray-800' }, 'Morning (6am-12pm)'),
+                  React.createElement('option', { value: 'afternoon', className: 'bg-gray-800' }, 'Afternoon (12pm-5pm)'),
+                  React.createElement('option', { value: 'evening', className: 'bg-gray-800' }, 'Evening (5pm-11pm)')
                 )
               ),
-              // Search Button
+              // Second row: Search Button (full width)
               React.createElement('button', {
                 onClick: handleSearch,
                 disabled: loading,
@@ -340,9 +373,17 @@
           results && React.createElement('div', null,
             // COMPACT STATS WITH REGION INFO
             React.createElement('div', { className: 'mb-4 p-4 bg-white/90 backdrop-blur rounded-lg shadow-md border border-gray-200' },
-              React.createElement('div', { className: 'grid grid-cols-2 md:grid-cols-5 gap-3 text-center' },
+              React.createElement('div', { className: 'grid grid-cols-3 md:grid-cols-6 gap-3 text-center' },
                 React.createElement('div', null,
-                  React.createElement('div', { className: 'text-3xl font-bold text-green-600' }, results.totalAvailableSlots),
+                  React.createElement('div', { className: 'text-3xl font-bold text-green-600' }, 
+                    (() => {
+                      // Calculate total filtered slots
+                      return results.clubs.reduce((total, club) => {
+                        const filteredSlots = filterSlotsByTimePeriod(club.availableSlots, selectedTimePeriod);
+                        return total + filteredSlots.length;
+                      }, 0);
+                    })()
+                  ),
                   React.createElement('div', { className: 'text-xs text-gray-600 mt-1 font-medium' }, 'Courts')
                 ),
                 React.createElement('div', null,
@@ -368,13 +409,35 @@
                   React.createElement('div', { className: 'text-xs text-gray-600 mt-1 font-medium' }, 
                     selectedRegion === 'All Regions' ? 'All Regions' : selectedRegion
                   )
+                ),
+                React.createElement('div', null,
+                  React.createElement('div', { className: 'text-2xl font-bold text-indigo-600' }, 
+                    selectedTimePeriod === 'all' ? '🌅' : 
+                    selectedTimePeriod === 'morning' ? '🌄' :
+                    selectedTimePeriod === 'afternoon' ? '☀️' : '🌙'
+                  ),
+                  React.createElement('div', { className: 'text-xs text-gray-600 mt-1 font-medium' }, 
+                    selectedTimePeriod === 'all' ? 'All Day' :
+                    selectedTimePeriod === 'morning' ? 'Morning' :
+                    selectedTimePeriod === 'afternoon' ? 'Afternoon' : 'Evening'
+                  )
                 )
               )
             ),
 
             // CLUBS WITH ROTATING COLORS AND REGION BADGES
-            results.clubs.filter(club => club.availableSlots.length > 0).map((club, clubIndex) => {
+            results.clubs.filter(club => {
+              // First filter: club must have slots
+              if (club.availableSlots.length === 0) return false;
+              
+              // Second filter: apply time period filter to slots
+              const filteredSlots = filterSlotsByTimePeriod(club.availableSlots, selectedTimePeriod);
+              return filteredSlots.length > 0;
+            }).map((club, clubIndex) => {
               const themeClass = colorThemes[clubIndex % colorThemes.length];
+              
+              // Apply time filter to slots for display
+              const filteredSlots = filterSlotsByTimePeriod(club.availableSlots, selectedTimePeriod);
               
               return React.createElement('div', { 
                 key: club.club,
@@ -405,7 +468,7 @@
                         'Book'
                       ),
                       React.createElement('div', { className: 'bg-white/20 backdrop-blur rounded-lg px-3 py-1.5 text-center slot-count-badge' },
-                        React.createElement('div', { className: 'text-2xl font-bold text-white' }, club.availableSlots.length),
+                        React.createElement('div', { className: 'text-2xl font-bold text-white' }, filteredSlots.length),
                         React.createElement('div', { className: 'text-[10px] text-white/90 leading-tight' }, 'slots')
                       )
                     )
@@ -413,7 +476,7 @@
                 ),
                 React.createElement('div', { className: 'p-3' },
                   (() => {
-                    const { byCourt, courts } = organizeSlotsByCourt(club.availableSlots);
+                    const { byCourt, courts } = organizeSlotsByCourt(filteredSlots);
                     
                     return React.createElement('div', { 
                       className: 'court-grid',
