@@ -4,14 +4,14 @@ Postcode,Primary Suburb(s),Region
 2007,"Broadway, Ultimo",Sydney City
 2008,"Chippendale, Darlington",Sydney City
 2009,Pyrmont,Sydney City
-2010,"Darlinghurst, Surry Hills",Inner City
-2011,"Kings Cross, Potts Point, Elizabeth Bay",Inner City
-2015,"Alexandria, Beaconsfield, Eveleigh",Inner South
-2016,Redfern,Inner South
-2017,"Waterloo, Zetland",Inner South
-2018,"Eastlakes, Rosebery",Inner South
-2019,"Banksmeadow, Botany",Inner South
-2020,"Mascot, Sydney Airport",Inner South
+2010,"Darlinghurst, Surry Hills",Sydney City
+2011,"Kings Cross, Potts Point, Elizabeth Bay",Sydney City
+2015,"Alexandria, Beaconsfield, Eveleigh",Sydney City
+2016,Redfern,Sydney City
+2017,"Waterloo, Zetland",Sydney City
+2018,"Eastlakes, Rosebery",Sydney City
+2019,"Banksmeadow, Botany",Sydney City
+2020,"Mascot, Sydney Airport",Sydney City
 2021,"Centennial Park, Paddington",Eastern Suburbs
 2022,"Bondi Junction, Queens Park",Eastern Suburbs
 2023,Bellevue Hill,Eastern Suburbs
@@ -28,7 +28,7 @@ Postcode,Primary Suburb(s),Region
 2034,"Coogee, South Coogee",Eastern Suburbs
 2035,"Maroubra, Pagewood",Eastern Suburbs
 2036,"Chifley, Matraville, Malabar, La Perouse",Eastern Suburbs
-2037,"Forest Lodge, Glebe",Inner West
+2037,"Forest Lodge, Glebe",Sydney City
 2038,Annandale,Inner West
 2039,"Rozelle, Lilyfield",Inner West
 2040,Leichhardt,Inner West
@@ -189,4 +189,5 @@ Postcode,Primary Suburb(s),Region
 2231,Caringbah South,Sutherland Shire
 2232,"Lilli Pilli, Port Hacking",Sutherland Shire
 2233,Barden Ridge,Sutherland Shire
+
 2234,"Bangor, Menai, Illawong",Sutherland Shire
