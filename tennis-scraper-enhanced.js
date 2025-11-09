@@ -231,7 +231,7 @@ const CLUBS = {
     name: "Sydney Boys High School",
     url: 'https://www.tennisvenues.com.au/booking/sydney-boys-high-school',
     address: '556 Cleveland St, Moore Park NSW 2021',
-    postcode: '2021',
+    postcode: '2010',
     phone: '0416 007 810',
     type: 'tennisvenues',
     courts: 6,
