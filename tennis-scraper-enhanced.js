@@ -77,10 +77,11 @@ function loadRegionsFromCSV() {
       '2031': 'Eastern Suburbs',
       '2021': 'Eastern Suburbs',
       '2022': 'Eastern Suburbs',
-      '2010': 'Inner City',
-      '2037': 'Inner West',
-      '2015': 'Inner South',
-      '2018': 'Inner South',
+      '2010': 'Sydney City',
+      '2000': 'Sydney City',
+      '2037': 'Sydney City',
+      '2015': 'Sydney City',
+      '2018': 'Sydney City',
       '2026': 'Eastern Suburbs',
       '2030': 'Eastern Suburbs',
       '2025': 'Eastern Suburbs',
@@ -235,8 +236,28 @@ const CLUBS = {
     type: 'tennisvenues',
     courts: 6,
     surface: 'Hard Court'
+  },
+  langhamTennis: {
+    name: 'Langham Tennis Centre',
+    url: 'https://langham.intrac.com.au/tennis/book.cfm?location=43',
+    address: 'Opposite Langham Hotel, 94 Kent St, Millers Point NSW 2000',
+    postcode: '2000',
+    phone: '(02) 9256 2222',
+    type: 'intrac',
+    courts: 1,
+    surface: 'Hard Court'
   }
 };
+
+// ============================================================================
+// 🔧 HELPER FUNCTION: Format date for Intrac booking URLs
+// ============================================================================
+function formatDateForIntrac(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 function filterFutureSlots(slots, searchDate) {
   const now = new Date();
@@ -973,25 +994,23 @@ async function scrapeIntracSportsSystem(page, club, date) {
   console.log(`  📡 Scraping ${club.name}...`);
   
   try {
-    // For Intrac Sports systems, we can pass the date directly in the URL
-    const searchDate = new Date(date);
-    const dateStr = searchDate.toISOString().split('T')[0]; // Format: 2025-10-29
+    const targetLocation = club.location;
     
-    // Modify URL to include date parameter
-    let urlWithDate = club.url;
-    if (urlWithDate.includes('?')) {
-      urlWithDate += `&date=${dateStr}`;
-    } else {
-      urlWithDate += `?date=${dateStr}`;
-    }
+    // ============================================================================
+    // 🆕 UPDATED: Build booking URL with the selected date and location
+    // ============================================================================
+    const formattedDate = formatDateForIntrac(date);
+    const baseUrl = club.url.split('?')[0];
+    const bookingUrl = `${baseUrl}?location=${club.locationId}&date=${formattedDate}`;
     
-    console.log(`  📅 Loading ${searchDate.toDateString()}...`);
-    console.log(`  🔗 URL: ${urlWithDate}`);
+    console.log(`  📅 Loading ${date.toDateString()}...`);
+    console.log(`  🔗 URL: ${bookingUrl}`);
     
-    await page.goto(urlWithDate, { 
+    await page.goto(bookingUrl, { 
       waitUntil: 'networkidle2',
       timeout: NAVIGATION_TIMEOUT
     });
+    // ============================================================================
     
     await humanDelay(4000, 5000);
     
@@ -1114,7 +1133,16 @@ async function scrapeIntracSportsSystem(page, club, date) {
       return availableSlots;
     }, club.courts);
 
-    const filteredSlots = filterFutureSlots(slots, date);
+    // ============================================================================
+    // 🆕 UPDATED: Add bookingUrl to each slot with the correct date
+    // ============================================================================
+    const slotsWithBookingUrls = slots.map(slot => ({
+      ...slot,
+      bookingUrl: bookingUrl  // Use the booking URL with the date
+    }));
+    // ============================================================================
+
+    const filteredSlots = filterFutureSlots(slotsWithBookingUrls, date);
     const uniqueSlots = Array.from(
       new Map(filteredSlots.map(slot => [`${slot.time}-${slot.court}`, slot])).values()
     );
@@ -1133,25 +1161,35 @@ async function scrapeIntracBookingSystem(page, club, date) {
   console.log(`  📡 Scraping ${club.name}...`);
   
   try {
-    // For Intrac systems, we can pass the date directly in the URL
-    const searchDate = new Date(date);
-    const dateStr = searchDate.toISOString().split('T')[0]; // Format: 2025-10-29
+    // ============================================================================
+    // 🆕 UPDATED: Build booking URL with the selected date
+    // ============================================================================
+    const formattedDate = formatDateForIntrac(date);
+    const baseUrl = club.url.split('?')[0]; // Get base URL without parameters
+    const urlParams = new URL(club.url).searchParams;
     
-    // Modify URL to include date parameter
-    let urlWithDate = club.url;
-    if (urlWithDate.includes('?')) {
-      urlWithDate += `&date=${dateStr}`;
-    } else {
-      urlWithDate += `?date=${dateStr}`;
-    }
+    // Build the URL with date parameter
+    let bookingUrl = baseUrl + '?';
+    const params = [];
     
-    console.log(`  📅 Loading ${searchDate.toDateString()}...`);
-    console.log(`  🔗 URL: ${urlWithDate}`);
+    // Add existing parameters from the club URL
+    urlParams.forEach((value, key) => {
+      params.push(`${key}=${value}`);
+    });
     
-    await page.goto(urlWithDate, { 
+    // Add date parameter
+    params.push(`date=${formattedDate}`);
+    
+    bookingUrl += params.join('&');
+    
+    console.log(`  📅 Loading ${date.toDateString()}...`);
+    console.log(`  🔗 URL: ${bookingUrl}`);
+    
+    await page.goto(bookingUrl, { 
       waitUntil: 'domcontentloaded',
       timeout: NAVIGATION_TIMEOUT
     });
+    // ============================================================================
     
     await humanDelay(3000, 4000);
 
@@ -1235,7 +1273,16 @@ async function scrapeIntracBookingSystem(page, club, date) {
       return availableSlots;
     });
 
-    const filteredSlots = filterFutureSlots(slots, date);
+    // ============================================================================
+    // 🆕 UPDATED: Add bookingUrl to each slot with the correct date
+    // ============================================================================
+    const slotsWithBookingUrls = slots.map(slot => ({
+      ...slot,
+      bookingUrl: bookingUrl  // Use the booking URL with the date
+    }));
+    // ============================================================================
+
+    const filteredSlots = filterFutureSlots(slotsWithBookingUrls, date);
     const uniqueSlots = Array.from(
       new Map(filteredSlots.map(slot => [`${slot.time}-${slot.court}`, slot])).values()
     );
