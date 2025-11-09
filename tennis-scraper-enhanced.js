@@ -214,7 +214,8 @@ const CLUBS = {
     type: 'intrac-sports',
     courts: 11,
     surface: 'Hard Court',
-    location: 'Centennial Parklands'
+    location: 'Centennial Parklands',
+    locationId: '55'
   },
   moorePark: {
     name: "Moore Park Courts",
@@ -225,7 +226,8 @@ const CLUBS = {
     type: 'intrac-sports',
     courts: 4,
     surface: 'Hard Court',
-    location: 'Moore Park Courts'
+    location: 'Moore Park Courts',
+    locationId: '72'
   },
   sydneyBoysHigh: {
     name: "Sydney Boys High School",
